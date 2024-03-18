@@ -9,6 +9,8 @@ import argparse
 from multiprocessing import Pool
 from functools import partial
 
+pv.global_theme.point_size = 10
+
 
 
 def filter_pts(pts, lim):
@@ -19,7 +21,7 @@ def filter_pts(pts, lim):
     return pts
 
         
-def plot_population_generic(savedir, mesh, lim, overwrite, population, id_):
+def plot_population_generic(savedir, mesh, lim, overwrite, text, population, id_):
     file = savedir / f"{id_}.png"
     if os.path.isfile(file) and not overwrite:
         return
@@ -27,7 +29,8 @@ def plot_population_generic(savedir, mesh, lim, overwrite, population, id_):
     p = pv.Plotter(off_screen=True)
     p.add_mesh(mesh)
     p.add_mesh(pts, color="red")
-    p.add_text(f"iter: {id_}", position="upper_right")
+    p.add_text(f"iter: {id_}", position="upper_right", font_size=14)
+    p.add_text(text, position="upper_edge", font_size=18)
     img = Image.fromarray(p.show(return_img=True))
     img.save(file)
         
@@ -54,6 +57,15 @@ if __name__ == "__main__":
         default=1, 
         required=True,
         type=int,
+    )
+    parser.add_argument(
+        "-t", 
+        "--text", 
+        action="store", 
+        dest='text', 
+        help='text to put in the middle of the image', 
+        required=True,
+        type=str,
     )
     parser.add_argument(
         "-o", 
@@ -83,7 +95,14 @@ if __name__ == "__main__":
     lim = max(mesh.points[:,0])
     savedir = root / "images"
     savedir.mkdir(exist_ok=True)
-    plot_population = partial(plot_population_generic, savedir, mesh, lim, args.overwrite)
+    plot_population = partial(
+        plot_population_generic, 
+        savedir, 
+        mesh, 
+        lim, 
+        args.overwrite, 
+        args.text
+    )
     inputs = zip(populations, ids)
     with Pool(args.num_processes) as pool:
         _ = pool.starmap(plot_population, tqdm(inputs, total=len(populations)))
